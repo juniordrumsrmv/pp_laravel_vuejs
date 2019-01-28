@@ -1,0 +1,823 @@
+CURSO PRATICO LARAVEL + VUE.JS
+
+1 - Instalar VUE.js
+Entre na página de Download/Instação copiar a instrução
+https://github.com/nodesource/distributions/blob/master/README.md
+
+No tempo deste curso, foi escolhido a versão 8 para debian, então na linha de comando
+$ curl -sL https://deb.nodesource.com/setup_8.x | bash -
+
+Após o Download, instalar com o comando
+$ apt-get install -y nodejs
+
+
+2 - Criar o projeto laravel
+$ composer create-project --prefer-dist laravel/laravel:5.4.* laravel-vuejs
+
+Obs: É interessante definir o namespace proprio para seu projeto e nao utilizar o padrão 'app' que já vem no laravel.
+Para renomear, utilize o artisan:
+$ php artisan app:name SON
+
+Então entre na pasta gere o key
+$ php artisan key:generate
+
+Após, crie um banco de dados, no caso criei com nome laravel_vuejs.
+Então, configure os dados de conexão no arquivo .env
+
+Com tudo configurado, rode o migrate para criar as tabelas padrões no banco
+$ php artisan migrate
+
+OBS: Caso o mysql seja uma versão mais antiga, devemos setar no provider 'AppServiceProvider' no metodo boot a seguinte linha antes do migrate:
+\Schema::defaultStringLength(191);
+
+
+3 - Melhorando auto-complete com laravel
+Utilizar somente para desenvolvimento, habilitará guia para phpstorm e similares
+Execute na linha do comando na pasta do projeto
+$ composer require --dev barryvdh/laravel-ide-helper:2.4*
+
+Obs: No curso a versão mais recente era a 2.4, mas já estamos na 2.5, por isso, passa-se a versão para nao dar erro.
+
+Depois em app > Providers > AppProvider adicionar a função
+public function register()
+{
+    if ( $this->app->environment() !== 'production' ) {
+        $this->app->register(\Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class);
+    }
+}
+
+Ainda na linha de comando, gere os arquivos necessarios de helper
+$ php artisan ide-helper:generate
+$ php artisan ide-helper:meta
+
+Depois, em nosso composer json, colocamos esses 2 comandos para serem executados sempre em uma nova atualização ou instalação para atualizar o auto-complete.
+Então adicionar nos blocos post-install-cmd e post-update-cmd sempre antes do comando de optimize
+
+
+4 - Criando autenticação e namespace próprio
+Por padrão a autenticação já vem instalada, porém temos que rodar um comando para gerar as views
+$ php artisan make:auth
+
+Depois criamos uma seeder para usuários
+$ php artisan make:seeder UsersTableSeeder
+
+Após criar a seeder, habilitar ela no databaseseeder e depois configurar o create no run do UsersTableSeeder.
+Então, atualize o banco para criar o usuário configurado neste create.
+No caso configurei 
+public function run()
+{
+    factory(\App\User::class)->create([
+        'email' => 'admin@user.com',
+        'password' => bcrypt('123')
+    ]);
+}
+
+Na linha de comando rode:
+$ php artisan migrate:refresh --seed
+
+
+5 - Definindo rotas da area administrativa
+Antes de configurar a rota, faça uma refatoração do model User.php trocando o namespace de SON para SON\Models, assim criará a pasta Models e colocará o User.php dentro e assim ficamos com uma pasta especifica para models.
+
+Agora, rode o dumpautoload do composer para recarregar antes de gerar as rotas
+$ composer dumpautoload
+
+Então, crie o controller com o modo resource
+$ php artisan make:controller Admin\\UserController --resource --model=SON\\Models\\User
+
+Onde:
+Admin\UserController = Nome do controller
+SON\\Models\\User = Referente a qual model
+--resource = habilitando o modo resource
+
+
+No web.php, nas pasta route, contem a configuração de rotas da aplicação do servidor. Então nela vamos configurar um grupo para area admin
+Route::prefix('admin')->group(function (){
+    Auth::routes();
+
+    Route::group([
+        'namespace' => 'Admin\\',
+        'as' => 'admin.',
+        'middleware' => 'auth'
+    ], function () {
+        Route::resource('users', 'UserController');
+    });
+});
+
+Então temos uma rota com prefix admin que so permite acesso autenticado
+
+
+6 - Primeiro contato com formulario
+Primeiro passo instalar a biblioteca laravel-form-builder ( kristijanhusak.github.io/laravel-form-builder)
+$ composer require kris/laravel-form-builder:1.12.1
+
+Após a instação, configurar em app.php o carregamento e a facade do FormBuilder.
+Em Package Service Providers...
+\Kris\LaravelFormBuilder\FormBuilderServiceProvider::class,
+
+Em aliasses
+'FormBuilder' => \Kris\LaravelFormBuilder\Facades\FormBuilder::class
+
+Criando formulario na linha de comando
+$ php artisan make:form Forms\\UserForm --fields="name:text,email:email"
+
+Este comando irá criar o formulario em app/Forms com nome de UserForm.php já configurando o campo name como text e email como email
+
+Agora crie um create.blade.php dentro da pasta view/admin/users carregando o form com apenas as linhas
+@extends('layouts.app')
+
+@section('content')
+    {!! form($form) !!}
+@endsection
+
+E configure o metodo store do controller para gerar o formulario e chamar  view
+$form = \FormBuilder::create(UserForm::class, [
+    'url' => route('admin.users.store'),
+    'method' => 'POST'
+]);
+
+return view('admin.users.create', compact('form'));
+
+
+7 - Ajuste no formulario e validação de dados
+Nesta aula ajustamos o layout create.blade.php pra importar o formulario criado nas aulas passadas pra dentro de um div container e div row para melhorar a apresentação e adionamos o botão do tipo submit para enviar.
+@extends('layouts.app')
+
+@section('content')
+    <div class="container">
+        <div class="row">
+            <h3>Novo usuário</h3>
+            {!!
+            form($form->add('insert', 'submit', [
+                'attr' => [ 'class' => 'btn btn-primary btn-block' ],
+                'label' => 'Inserir'
+            ]))
+            !!}
+        </div>
+    </div>
+@endsection
+
+Também foi adicionado as validações nos campos no arquivo UserForm gerado para o formulario.
+$this
+            ->add('name', 'text', [
+                'label' => 'Nome',
+                'rules' => 'required|max:255'
+            ])
+            ->add('email', 'email', [
+                'label' => 'E-mail',
+                'rules' => 'required|max:255|unique:users'
+            ]);
+            
+Foi criado a validação no metodo store do controller para em caso de invalido o formulario redirecionar com redirect back
+
+
+8 - Cadastro de usuarios
+Então terminamos de implementar o metodo store agora alem de validar o formulario, incluindo de fato os dados no banco de dados e em caso de sucesso, redirecionando para a listagem q ainda nao criamos.
+Obs: Importante atentar-se a função getFieldValues, ela somente recebe os campos existentes no formulario, evitando envio de campos extras nao configurados.
+$data = $form->getFieldValues();
+
+
+9 - Bootstrapper - Listando usuários
+Nesta aula apresentou a biblioteca Bootstrapper, uma excelente ferramenta de geração de layout boostrap para laravel
+O site da documentação é: https://github.com/patricktalmadge/bootstrapper
+Para instalar, execute:
+$ composer require patricktalmadge/bootstrapper:5.10.2
+
+Depois, em app.php adicione o provider
+Bootstrapper\BootstrapperL5ServiceProvider::class
+
+Já no aliasses, na documentação tem as facades de todos os elemetos, então informamos qual vamos usar durante o projeto.
+Ex:
+        'Table' => Bootstrapper\Facades\Table::class,
+        'Button' => Bootstrapper\Facades\Button::class,
+
+Depois foi mostrado como criar um botão utilizando a classe button do bootstrapper.
+Ex no blade
+{!! Button::primary('Novo usuário')->asLinkTo(route('admin.users.create')) !!}
+Este exemplo cria um botão com lavel Novo usuário e sendo link para a rota 'admin.users.create'
+
+Abaixo criamos a tabela de lista de usuario, da seguinte forma:
+{!! Table::withContents($users->items()) !!}
+
+No Model de Users, temos que implementar a classe TableInterface e registrar os 2 metodos
+public function getTableHeaders()
+{
+    return ['ID', 'Nome', 'Email'];
+}
+
+Que retorna a lista de cabeçalhos da tabela e
+public function getValueForHeader($header)
+{
+    switch ($header) {
+        case 'ID':
+            return $this->id;
+        case 'Nome':
+            return $this->name;
+        case 'Email':
+            return $this->email;
+    }
+}
+
+Que mapeia o cabeçalho ao campo correspondente na lista
+
+
+10 - Ações de editar e excluir
+Nesta aula foi ensinado a maneira de criar os botões de editar e exibir na listagem de usuário utilizando o callback. Então para gerar os campos a definição da tabela no index.blade ficou
+Table::withContents($users->items())
+            ->striped()
+            ->callback('Ações', function ($field,$model){
+                $linkEdit = route('admin.users.edit',['user' => $model->id]);
+                $linkShow = route('admin.users.show',['user' => $model->id]);
+                return Button::link('Editar')->asLinkTo($linkEdit).'|'.
+                    Button::link('Ver')->asLinkTo($linkShow);
+            })
+            
+Atente-se ao metodo callback que adiciona os campos de edição montando um link e retornando-os
+
+
+11 - Edição de usuários
+Nesta aula criamos o formulario de edit.
+Então, no metodo edit recebemos o formulario e retornamos no view.
+Ja no metodo update, configuramos a validação dos dados e realizamos a alteração no banco.
+
+Foi necessario mexer no UserForm para receber o id do usuario para que nao valide o email caso seja alteracao e o mesmo id.
+Recebendo id no UserForm
+$id = $this->getData('id');
+
+Passando o id no update
+$form = \FormBuilder::create(UserForm::class, [
+            'data' => [ 'id' => $user->id ]
+        ]);
+        
+        
+        
+12 -   Mostrando e excluindo usuários
+Nesta aula adicionamos o show.blade para lista os dados do usuario e nele configuramos os botão de editar e principalmente o de deletar pois:
+1 - Foi necessario criar o botao chamando o javascript
+2 - Criar um formulario invisivel para mudar o metodo para DELETE e ele ser chamado pelo javascript do botao deletar.
+3 - Configurar o metodo destroy no controller
+
+
+13 - Trabalhando com icones
+Nesta aula foi mostrado como trabalhar com icones do bootstrapp utilizando o bootstrapper.
+Primeiro passo é configurar a facade de Icon em app.php
+'Icon' => \Bootstrapper\Facades\Icon::class
+
+Segundo passo é instalar as dependencias do npm. Então na pasta do projeto digite:
+$ npm install
+Obs: Caso tenha proxy na rede, rode os comandos de proxy antes:
+$ npm config set proxy http://boliveira:Hello1190@192.168.25.254:3128
+$ npm config set https-proxy http://boliveira:Hello1190@192.168.25.254:3128
+
+Terceiro passo é criar o pacote bootstrap, então rode
+$ npm run dev
+
+Agora os icones foram devidamente instalados e para usar é muito simples.
+Ex:
+{!! Button::primary(Icon::pencil() . ' Editar')->asLinkTo($linkEdit) !!}
+Esse é um botão link de editar. Nele temos a chamada do icone de caneta concatenado com a palavra Editar.
+Portanto o nome da funcao do icon é sempre a ultima do nome do glyphicon. No exemplo utilizamos o 'glyphicon-pencil' então chamamos Icon::pencil()
+
+
+13 - Menus de usuário apenas com PHP
+Primeiro passo é configurar 2 facades no app.php, a Navbar e a Navigation:
+'Navbar' => \Bootstrapper\Facades\Navbar::class,
+'Navigation' => \Bootstrapper\Facades\Navigation::class
+
+Depois, substituir o navbar padrão do app.blade para o seguinte:
+@php
+            $navbar = Navbar::withBrand(config('app.name'));
+            if (Auth::check()){
+                $arrayLinks = [
+                    ['link' => route('admin.users.index'), 'title' => 'Usuário']
+                ];
+                $arrayLinksRight = [
+                    [
+                        Auth::user()->name,
+                        [
+                            [
+                                'link' => route('logout'),
+                                'title' => 'Logout',
+                                'linkAttributes' => [
+                                    'onclick' => "event.preventDefault();document.getElementById(\"form-logout\").submit();"
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+
+                $navbar->withContent(Navigation::links($arrayLinks))
+                       ->withContent(Navigation::links($arrayLinksRight)->right());
+
+                $formLogout = FormBuilder::plain([
+                    'id' => 'form-logout',
+                    'url' => route('logout'),
+                    'method' => 'POST',
+                    'style' => 'display:none'
+                ]);
+            }
+        @endphp
+        {!! $navbar !!}
+        {!! form($formLogout) !!}
+
+        @yield('content')
+        
+Aqui vemos com utilizar a classe navbar criando o menu com links e a marca da empresa.
+
+
+
+14 - Mensagem de confirmação
+Nesta aula foi mostrado como é facil a implementação de mensagem ia session->flash.
+No controller, setamos um flash com nome e conteudo e no html exibimos.
+Ex no modo update
+session()->flash('message', 'Usuário editado com sucesso');
+
+Ai no app.blade setamos uma div para exibição:
+@if(Session::has('message'))
+    <div class="container">
+        {!! Alert::success(Session::get('message'))->close() !!}
+    </div>
+@endif
+
+
+
+15 - Geração de matricula
+Nesta aula foi mostrado a geração do campo matricula que foi esquecida de adicionar no começo do curso.
+Então como ja aprendi, colocar o campo na migration do create da tabela, campo 'enrolment' e colocar
+ele no fillable do modelo.
+Ainda no modelo, criar 2 funcoes static para gerenciar a geração da senha e matricula:
+public static function createFully($data){
+        $password = str_random(6);
+        $data['password'] = $password;
+        $user = parent::create($data+['enrolment' => str_random(6)]);
+        self::assignEnrolment($user, self::ROLE_ADMIN);
+        $user->save();
+        return $user;
+    }
+
+    public static function assignEnrolment($user, $type){
+        $types = [
+            self::ROLE_ADMIN => 100000,
+            self::ROLE_TEACHER => 400000,
+            self::ROLE_STUDENT=> 700000
+        ];
+        $user->enrolment = $types[$type] + $user->id;
+
+        return $user->enrolment;
+    }
+    
+E mudar o metodo store do controller tirando a geracao de senha e invocando o create do model
+public function store(Request $request)
+    {
+        /** @var Form $form */
+        $form = \FormBuilder::create(UserForm::class);
+
+        if (!$form->isValid()){
+            return redirect()
+                ->back()
+                ->withErrors($form->getErrors())
+                ->withInput();
+        }
+
+        $data = $form->getFieldValues();
+        User::createFully($data);
+        $request->session()->flash('message', 'Usuário criado com sucesso');
+        return redirect()->route('admin.users.index');
+    }
+    
+    
+    
+16 - Login com matricula    
+Nesta aula foi mostrado como adicionamos outro campo como identificador no login, podendo então passar email ou matricula.
+A primeira alteração é sobrescrever o metodo 'credentials' no login controller da seguinte forma:
+protected function credentials(Request $request)
+{
+    $data = $request->only($this->username(), 'password');
+    $usernameKey = $this->usernameKey();
+    $data[$usernameKey] = $data[$this->username()];
+    unset($data[$this->username()]);
+    return $data;
+}
+Veja que esse metodo precisa do metodo que criamos, chamado usernameKey
+protected function usernameKey(){
+    $email = \Request::get($this->username());
+    $validator = \Validator::make([
+        'email' => $email,
+    ], ['email' => 'email' ]);
+    return $validator->fails() ? 'enrolment' : 'email';
+}
+
+Com login controller configurado, devemos mexer sobrescrever o metodo username
+public function username()
+{
+    return 'username';
+}
+
+E por ultimo, editar o login.blade trocando tudo que for 'email' para 'username'
+
+
+17 - Criando notificação de conta de usuario criado
+Nesta aula começamos a configurar o sistema de notificação de usuário por email.
+Criamos primeiro a classe de notificação com o comando
+$ php artisan make:notification UserCreated
+Este comando irá criar a classe UserCreated na pasta Notifications dentro de app
+
+Ao editar esse arquivo, fazemos algumas limpezas de  'use' q não serão usados e configamos o metodo toMail da seguinte forma:
+public function toMail($notifiable)
+{
+    $appName = config('app.name');
+    return (new MailMessage)
+                ->subject("Sua conta no $appName foi criada")
+                ->greeting("Olá {$notifiable->name}, seja bem-vindo ao $appName")
+                ->line("Seu numero de matricula é: {$notifiable->enrolment}")
+                ->line('Obrigado por usar nossa aplicação');
+}
+
+
+
+18 - Testando envio de email de boas vindas
+Nesta aula aprendemos a criar um campo do tipo checkbox para marcar o envio de email.
+No UserForm adicione o botao:
+->add('send_mail','checkbox', [
+    'label' => 'Enviar e-mail de boas vindas',
+    'value' => true,
+    'checked' => false
+])
+
+Após isso, no model de user, na função createFully, antes de da um return, enviamos o email caso seja marcado para enviar:
+if(isset($data['send_mail'])){
+    $user->notify(new UserCreated());
+}
+
+
+19 - Envio de link de recuperação de senha
+Nesta aula foi ensinado como adicionar no email de criação de usuário um link para que o cadastrado registre uma nova senha.
+Primeiro passo é gerar o token e informar na chamada do notify.
+Então no model, antes de chamar o notify, receba o token em uma variavel e informe na chamada do notify
+Ex:
+$token = \Password::broker()->createToken($user);
+$user->notify(new UserCreated($token));
+
+Depois, na notification UserCreated, receba o $token no _contruct e no metodo de geração do email, adicione a linha de botão 'action'
+Ex recebendo valor:
+    /**
+     * @var
+     */
+    private $token;
+
+    /**
+     * Create a new notification instance.
+     *
+     * @return void
+     */
+    public function __construct($token)
+    {
+        //
+        $this->token = $token;
+    }
+
+Ex link no email:
+->action('Clique aqui para definir sua senha', route('password.reset', $this->token))
+
+
+20 - Mostrando password do usuario criado
+Nesta aula aprendemos a configurar um layout para exibição dos dados do usuário q acabamos de criar.
+Primeiro passo é criar a rota dentro do grupo admin.
+    Route::group(['prefix' => 'users', 'as' => 'users.'], function (){
+        Route::name('show_details')->get('show_details', 'UserController@showDetails');
+    });
+
+Após isso, no controller, no metodo store altere a parte de gravação dos dados e retorno para o seguinte:
+    $result = User::createFully($data);
+    $request->session()->flash('message', 'Usuário criado com sucesso');
+    $request->session()->flash('user_created', [
+        'id' => $result['user']->id,
+        'password' => $result['password']
+    ]);
+    return redirect()->route('admin.users.show_details');
+    
+Logo abaixo do metodo store, crie o metodo showDetails
+    public function showDetails(){
+        $userData = session('user_created');
+        $user = User::findOrFail($userData['id']);
+        $user->password = $userData['password'];
+        return view('admin.users.show_details', compact('user'));
+    }
+    
+    
+21 - Criando tipos de usuários
+Nessa aula começamos a ver um pouco de polimorfimos e como utilizar na aplicação
+Então os dados especificos de admin, professor e estudantes irão ficar em models separadas com relacionamento com a user
+Primeiro passo adicionar na migration de user o campo:
+  $table->nullableMorphs('userable');
+
+Depois, no model de user, adicionar a chamada da funcao userable logo abaixo do metodo hidden
+  public function userable(){
+      return $this->morphTo();
+  }
+    
+Então, criamos os 3 models já com as migrations
+$ php artisan make:model Models\\Student -m
+$ php artisan make:model Models\\Teacher -m
+$ php artisan make:model Models\\Admin -m
+
+Serão criados os models na pasta Models
+Em cada modo, adicione a função user
+  public function user(){
+      return $this->morphOne(User::class, 'userable');
+  }
+
+  
+22 - Brincando com polimorfimo
+Nesta aula foi ensinado como criar um usuario e linkar ao um tipo.
+Precisamos antes rodar um
+$ composer dumpautoload
+
+E depois atualizar o banco
+$ php artisan migrate:refresh --seed
+
+Agora, entrar no tinker e criar um usuario
+$user = \SON\Models\User::create(['name' => 'teste18', 'email' => 'teste18@teste.com', 'password' => 'teste', 'enrolment' => '001']);
+
+Criar um tipo. Ex: estudante
+$student = \SON\Models\Student::create([]);
+
+Associa-los
+$user->userable()->associate($student);
+
+Por ultimo, salvar a associacao
+$user->save();
+
+
+23 - Criando tipos de usuarios
+Nesta aula foi mostrado como configurar a criação dos usuarios e setar seus tipos.
+Foi preciso mexer no model para criar a classe assignRole e chamar ela no metodo createFully antes do save
+Ex:
+self::assignRole($user, $data['type']);
+
+Tambem mexemos no UserForm para adicionar o campo tipo select na tela de criação
+  ->add('type', 'select', [
+      'label' => 'Tipo de usuário',
+      'choices' => $this->roles(),
+      'rules' => 'required|in:'.implode(',',array_keys($this->roles()))
+  ])
+
+Veja que chama a função role, que criamos no proprio UserForm
+  protected function roles(){
+      return [
+          User::ROLE_ADMIN => 'Administrador',
+          User::ROLE_TEACHER => 'Professor',
+          User::ROLE_STUDENT => 'Aluno'
+      ];
+  }
+  
+Foi tambem configurado o factory e a seed para criação de usuarios dos 3 tipos
+
+
+24 - Protegendo login e area administrativa
+Nesta aula foi mostrado como proteger o login e a area administrativa para acesso somente por usuarios admin.
+Primeiro passo, no logincontroller, no metodo credentials, adicionar a checagem de type antes do unset de vars
+ex:
+$data['userable_type'] = Admin::class;
+
+No authserviceprovider, criar um gate como habilidade admin e depois adicionar um middleware na rota com essa habilidade no middleware can.
+AuthServiceProvider metodo boot:
+  \Gate::define('admin', function ($user){
+    return $user->userable instanceof Admin;
+  });
+  
+web - rota, adcionar o middleware:
+'middleware' => ['auth', 'can:admin']
+
+
+25 - Protegendo menu administrativo
+Foi nos ensinado como proteger o menu administrativo para somente ser exibido para usuarios administradores.
+Basta somente alterar em app.blade adicionando um if no menu para ser exibido para usuarios que o Gate retorne positivo.
+Então coloque o menu dentro do if.
+Ex:
+  if ( \Gate::allows('admin') ){
+      $arrayLinks = [
+          ['link' => route('admin.users.index'), 'title' => 'Usuário']
+      ];
+      $navbar->withContent(Navigation::links($arrayLinks));
+  }
+Veja tambem q o navbar so é exibido neste if, na declaração normal deixe somente o menu de logout.
+Ex:
+$navbar->withContent(Navigation::links($arrayLinksRight)->right());
+
+
+26 - Aterando senhas
+Nesta aula foi ensinado como criar a tela de alteração de senhas, seu menu e rota
+Primeiro passo é criar o formulario
+$ php artisan make:form Forms\\UserSettingsForm --fields="password:password,password_confirmation:password"
+Obs: Coloque as validações no campo password
+
+Segundo passo é criar o controller
+$ php artisan make:controller Admin\\UserSettingsController --resource --model=SON\\Models\\User
+Obs: Deixe somente os metodos edit e update e configure-os conforme o projeto.
+
+Depois, crie a rota dentro do grupo admin
+  Route::group(['prefix' => 'users', 'as' => 'admin.users.'], function (){
+      Route::name('settings.edit')->get('settings', 'Admin\UserSettingsController@edit');
+      Route::name('settings.update')->put('settings', 'Admin\UserSettingsController@upadte');
+  });
+
+Após esses passos, duplique o create.blade nomeando para settings.blade e faça as alterações a gosto, como titulo e valor do botao.
+
+Em seguida, adicione o link para acesso no app.blade no mesmo array do logout
+Ex:
+  [
+      'link' => route('admin.users.settings.edit'),
+      'title' => 'Configurações'
+  ],
+  
+  
+27 - Criando perfil de usuário
+Nesta aula foi mostrado como criar a tela de edição de perfil do usuario, a criação de tabela para perfil de usuario.. seu relacinamento com a tabela user e a rota.
+Igual a aula anterior, crie o formulario UserProfileForm, crie o Controller UserProfileController, configure-os como mostrado na aula.
+Altere a migration criada para adicionar os campos e adiciones no fillable do model UserProfile.
+Crie a pasta profile dentro da pasta admin/user e adicione dentro a view edit.blade com o formulario criado.
+e adicione a rota abaixo de show_details
+Route::group(['prefix' => '/{user}/profile'], function () {
+    Route::name('profile.edit')->get('', 'UserProfileController@edit');
+    Route::name('profile.update')->put('', 'UserProfileController@update');
+});
+
+Depois rode um refresh e teste
+
+
+28 - Criando abas para administração
+Nesta aula foi mostrado como trabalhamos com abas para separar o cadastro por parte.
+Primeiro passo é criar a view tabs-component.blade. Ela será responsavel por gerar as abas com os links corretos.
+Então seu conteudo será
+  @php
+      $tabs = [
+        ['title' => 'Informações','link' => route('admin.users.edit',['user' => $user->id])],
+        ['title' => 'Perfil','link' => route('admin.users.profile.edit',['user' => $user->id])]
+      ]
+  @endphp
+
+  <h3>Gerenciar usuário</h3>
+  <div class="text-right">
+      {!! Button::link('Listar usuários')->asLinkTo(route('admin.users.index')) !!}
+  </div>
+  {!! \Navigation::tabs($tabs) !!}
+  <div>
+      {!! $slot !!}
+  </div>
+
+- Ponto 1
+Geramos o array tabs com os links das abas
+
+- Ponto 2
+Criamos uma Navigation::tabs que gera as abas do bootstrap em uma div
+
+- Ponto 3
+Temos o {!! $slot !!} que é a div que carrega as view pertinentes a aba selecionada
+
+Após isso, no profile/edit.blade utilizar a directiva @component.
+O conteudo que estiver dentro dela será exibido no $slot do tabs-component.
+Ex:
+  @component('admin.users.tabs-component',['user' => $form->getModel()])
+      <div class="col-md-12">
+          <h3>Editar perfil</h3>
+          <?php $icon = Icon::create('pencil');?>
+          {!!
+              form($form->add('salve', 'submit', [
+                  'attr' => ['class' => 'btn btn-primary btn-block'],
+                  'label' => $icon
+              ]))
+          !!}
+      </div>
+  @endcomponent
+  
+Obs: Faça isso também com o edit.blade
+
+
+29 - Traduzindo fake e simulando perfis
+Primeiro passo nessa aula é criar o model de state disponbilizado no projeto do curso.
+
+No AppServiceProvider devemos extender a classe Generator returnanto a classe faker trocando o local(lingua)
+EX:
+  $this->app->extend(FakerGenerator::class, function (){
+      return FakerFactory::create('pt_BR');
+  });
+  
+nos uses fica assim:
+  use Faker\Factory as FakerFactory;
+  use Faker\Generator as FakerGenerator;
+
+Já no modelfactory adicione o define:
+  $factory->define(\SON\Models\UserProfile::class, function (Faker\Generator $faker) {
+      return [
+          'address' => $faker->address,
+          'cep' => function() use($faker){
+              $cep = preg_replace('/[^0-9]/','',$faker->postcode());
+              return $cep;
+          },
+          'number' => rand(1,100),
+          'complement' => rand(1,10)%2==0?null:$faker->sentence,
+          'city' => $faker->city,
+          'neighborhood' => $faker->city,
+          'state' => collect(\SON\Models\State::$states)->random(),
+      ];
+  });
+  
+Por ultimo coloque no seeder, na criação dos usuarios fake
+$profile = factory(UserProfile::class)->make();
+$user->profile()->create($profile->toArray());
+Antes das linha User::assignRole($user, User::ROLE_TEACHER);
+  
+  
+30 - Administração de turmas e disciplinas
+Nesta aula foi mostrado como criar as tabelas de disciplinas e informações de turma.
+Criar os respectivos models e controllers. As views, seeders e factory.
+Rodar o migrate com a seed e criar o menus com as rotas confiradas para ambos
+
+
+31 - Trabalhando com datas no formulario
+Nesta aula foi ensinado como trabalhar com campo date utilizando a biblioteca carbon que já deixa o dado formatado para banco de dados.
+No formulario, crie uma variavel para receber a data.
+  $formatDate = function($value){
+      return ($value && $value instanceof Carbon)?$value->format('Y-m-d'):$value;
+  };
+Depois informe-a no value do campo.
+
+
+32 - Criando relacionamento entre turma e estudantes
+Nesta aula foi passado como criar o relacionamento entre students e class_information através de uma tabela pivot.
+Primeiro passo é criar a tabela:
+$ php artisan make:migration create_class_information_student_table --create=class_information_student
+
+Depois, edite a migration gerada e adicione os campos com seus foreigns
+ex:
+  Schema::create('class_information_student', function (Blueprint $table) {
+      $table->integer('student_id')->unsigned();
+      $table->foreign('student_id')->references('id')->on('students');
+
+      $table->integer('class_information_id')->unsigned();
+      $table->foreign('class_information_id')->references('id')->on('class_informations');
+
+      $table->unique(['student_id', 'class_information_id']);
+  });
+  
+Edite agora o seeder de ClassInformation para que na criação ele gere uns relacionamentos.
+  $students = \SON\Models\Student::all();
+  factory(\SON\Models\ClassInformation::class,50)
+      ->create()
+      ->each(function (\SON\Models\ClassInformation $model) use ($students) {
+          /** @var \Illuminate\Support\Collection $studentsCol */
+          $studentsCol = $students->random(10);
+          $model->students()->attach($studentsCol->pluck('id'));
+      });
+      
+      
+33 - Criando area de alunos e turmas
+Nesta aula foi mostrado como criar o link de acesso ao alunos de uma turma na view da turma.
+Então, para nao poluir o controller foi adicionado um novo para essa ligação
+$ php artisan make:controller Admin\\ClassStudentsController --resource
+
+Nele devemos deixar apenas o index, store e destroy e configurá-los conforme projeto de exemplo do curso.
+
+Em seguida, configurar a rota para este link
+  Route::group(['prefix' => 'class_informations/{class_information}', 'as' => 'class_informations.'],
+  function () {
+      Route::resource('students', 'ClassStudentsController', ['only' => ['index', 'store', 'destroy']]);
+      Route::resource('teachings', 'ClassTeachingsController',['only' => ['index','store','destroy']]);
+  });
+
+Por ultimo, adicione o link e o icone no idenx de class_information
+
+
+34 - Configuração inicial com laravel mix
+Nesta aula muito importante foi mostrado como configurar o laravel mix e seu funcionamento.
+O que é e como funciona o webpack. E criamos a pagina de exemplo de class_students e um componente para chamar na view.
+Pontos de atencao
+1 - Criar uma pasta admin em resource/assets. E copia dessa pasta as pastas js e sass para dentro de admin.
+Feito isso, renomei os arquivos app.js e app.sass para admin.js e admin.sass respectivamente.
+2 - Na raiz do projeto, no arquivo webpack.mix.js, responsavel pela geração dos packs, substitua os nome app para admin como alterado no passo anterior
+3 - Dento de resource/assets/admin/js/components crie uma pasta class_information e dentro dela um arquivo vue chamado ClassStudent.vue.
+Copie um html de exemplo para ele
+4 - Agora em resource/assets/admin/js/admin.js registre um novo componente apontando para o vue recem criado
+Ex:
+Vue.component('class-student', require('./components/class_information/ClassStudent.vue'));
+5 - Na view class_students.blade adicone o componente para exibição
+Ex: 
+<class-student></class-student>
+
+Feito isso, rode o
+$ npm run dev
+
+Isso gerará os pacotes e so atualizar o browser e testar.
+
+
+35 - Criando store Vuex para alunos e turma
+Nesta aula foi ensinado conceitos basicos de vuex e inicio da criacao da logica para listagem de alunos utilizando o vuex
+Primeiro passo em assets/admin/js foi criado uma pasta store para guardar os arquivos js que conteram a logica.
+O arquivo class_students.js contem os metodos, já o store.js é responsavel por importar esse e outros arquivos futuros que serão criados.
+Foi necessária a instalação do Vuex via npm
+$ npm install vuex@2.3.1 --save-dev
+
+
+36 - Listando alunos da turma
+
