@@ -31,20 +31,6 @@ class ClassInformation extends Model implements TableInterface
         return $this->hasMany(ClassTeaching::class);
     }
 
-    public function scopeByTeacher($query, $teacherId)
-    {
-        return $query->whereHas('teachings', function ($query) use($teacherId){
-            $query->where('teacher_id', $teacherId);
-        });
-    }
-
-    public function scopeByStudent($query, $studentId)
-    {
-        return $query->whereHas('students', function ($query) use($studentId){
-            $query->where('student_id', $studentId);
-        });
-    }
-
     /**
      * A list of headers to be used when a table is displayed
      *

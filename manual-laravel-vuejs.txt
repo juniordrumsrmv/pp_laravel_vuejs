@@ -820,4 +820,240 @@ $ npm install vuex@2.3.1 --save-dev
 
 
 36 - Listando alunos da turma
+Nesta aula bem complexa, foi ensinado como configurar a estrura e os arquivos js para listar os usuarios da turna selecionada.
+Para começo foi necessário alterar o index do ClassStudentsController para:
+  public function index(Request $request, ClassInformation $class_information)
+  {
+      if(!$request->ajax()) {
+          return view('admin.class_informations.class_student', compact('class_information'));
+      }else {
+          return $class_information->students()->get();
+      }
+  }
+  
+Na sequencia, é necessário instalar o vue-resource:
+$ npm install vue-resource@1.3.4 --save-dev
 
+Feito isso, foi codificado o store.js e class_student.js
+Criamos tambem a pasta services e dentro o adminConfi.js para receber os dados de requisição
+Foi alterado também o blade class_student para passar no componente o id da turma:
+<class-student class-information="{{$class_information->id}}"></class-student>
+
+
+37 - Criando campo select para buscar alunos
+Nesta aula foi ensinado como instalar e configurar a biblioteca select2 para utilizarmos no campo select
+e alimentar atraves de ajax pelo controller.
+Primeiro passo foi instalar a biblioteca através do npm
+$ npm install select2 --save-dev
+
+Depois de instalada, criamos uma pasta Api dentro de Controller e depois criamos um controller simples pelo artisan:
+$ php artisan make:controller Api\\StudentsController
+Este controller so tera o methodo index que listará os alunos. Será configurado na proxima aula.
+
+Depois foi criada a rota de para acessar esse controller. Vide web.php do curso
+
+No admin.css devems importar o css do select2
+@import "node_modules/select2/src/scss/core";
+
+Depois importamos o select 2 no componente
+import 'select2';
+
+Então, no metodo mounted do componente fazemos a logica. Vide no arquivo do curso
+
+
+38 - Buscando alunos no select
+Nesta aula foi mostrado comoconfigurar o controller para receber uma string por parametro e utilizá-la na consulta.
+Esse prm é o nome do usuario digitado no select da view e sera passado atraves do ajax.
+O index do controller fica assim:
+  $search = $request->get('q');
+  return !$search?
+      [] :
+      Student::whereHas('user', function($query) use($search){
+          $query->where('users.name', 'LIKE', "%{$search}%");
+      })->take(10)->get();
+
+No componente configuramos conforme arquivo de exemplo do curso utilizando o metodo ajax
+Ex:
+  $("select[name=students]").select2({
+      ajax: {
+          url: `${ADMIN_CONFIG.API_URL}/students`,
+          dataType: 'json',
+          delay: 250,
+          data(params){
+              return {
+                  q: params.term
+              }
+          },
+          processResults(data){
+              return {
+                  results: data.map((student) => {
+                      return {id: student.id, text: student.user.name}
+                  })
+              }
+          }
+      },
+      minimumInputLength: 1,
+  });
+  
+  
+39 - Criando metodo para adicionar alunos na turma
+Nesta aula foi mostrado como criar uma form request para validação de dados.
+Na linha de comando
+$ php artisan make:request ClassStudentRequest
+
+Será gerado ClassStudentRequest dentro da pasta Request em App
+
+Depois configura o ClassStudentsController, especificamente o metodo store:
+  public function store(ClassStudentRequest $request, ClassInformation $class_information)
+  {
+      $student = Student::find($request->get('student_id'));
+      $class_information->students()->save($student);
+      return $student;
+  }
+
+No requeste, mude o autorize de false pra true e no metodo rules adicione
+  $class_information = $this->route('class_information');
+  return [
+      'student_id' => [
+          'required',
+          'exists:student,id',
+          Rule::unique('class_information_student', 'student_id')
+              ->where('class_information_id',$class_information->id)
+      ]
+  ];
+
+  
+40 - Testando adicição de alunos na turma
+Nesta aula aprendemos como fazer a adição de aluno numa turma.
+Foram configurações complexas de java script.
+ENTAO REVER ESSA AULA DEPOIS
+
+
+41 - Mostrando mensagens de confirmação com PNotify
+Nesta aula foi mostrado como instalar e configurar o PNotify para utilizarmos como estilização das notificações.
+No nosso caso, para mensagem de adcição de aluno a turma com sucesso.
+Primeiro, a instalação com npm
+$ npm install pnotify@3.2.0 --save-dev
+
+Após a instalação, importamos os css no admin.scss
+  @import "node_modules/pnotify/src/pnotify";
+  @import "node_modules/pnotify/src/pnotify.brighttheme";
+  @import "node_modules/pnotify/src/pnotify.buttons";
+
+Depois, ligamos o carregamento no bootstrap.js no requirimento do jquery
+  require('bootstrap-sass');
+  window.PNotify = require('pnotify');
+  require('pnotify/src/pnotify.buttons')
+
+Por ultimo, trocamos o alert pela chamada do pnotify em nosso componente (ClassStudent.vue)
+  .then(() => {
+      new PNotity({
+          title: 'Aviso',
+          text: 'Aluno adicionado com sucesso',
+          styling: 'brighttheme',
+          type: 'success'
+      });
+  })
+
+Obs: Em app.blade, tiramos a chamada do style para campo hiden e adicionamento em admin.scss
+Ex:
+@media print {
+  .hidden-print{
+    display: none !important;
+  }
+}
+
+
+42 - Excluindo alunos da turma
+Nesta aula foi ensinado como configurar o botão de exclusão de aluno da turma.
+Primeiro passo, no store, criamos uma action destroy:
+  destroy(context, {studentId, classInformationId}){
+      return ClassStudent.delete({class_information: classInformationId,student: studentId})
+          .then(response => {
+              context.commit('destroy', studentId)
+          })
+  }
+E adicionamos sua mutation:
+  destroy(state, studentId){
+      let index = state.students.findIndex((item) => {
+          return item.id = studentId
+      });
+      if(index!=-1){
+          state.students.splice(index,1);
+      }
+  }
+
+Depois, configuramos o metodo destrou no ClassStudentsController
+  public function destroy(ClassInformation $class_information, Student $student)
+  {
+      $class_information->students()->detach([$student->id]);
+
+      return response()->json([], 204); //status code - no content
+  }
+  
+E por ultimo, em nosso componente adicionamos o metodo de excluir e configuramos o botão.
+Metodo:
+  methods: {
+      destroy(student){
+          if(confirm('Deseja remover este aluno')){
+              store.dispatch('classStudent/destroy', {
+                  studentId: student.id,
+                  classInformationId: this.classInformation
+              })
+          }
+      }
+  }
+Botão:
+  <td>
+      <button type="button" class="btn btn-default" @click="destroy(student)">
+          <span class="glyphicon glyphicon-trash"></span> Excluir
+      </button>
+  </td>
+  
+
+43 - Criando area de administração de ensino
+Nesta aula foi mostrado como criar a ara de administração de ensina.
+Primeiro criou-se o botão de Ensino na listagem da turma.
+Criamos o ClassTeachingsController, ClassTeachingRequest, a rota no web.php, class_teaching.blade e na proxima aula será configurado
+os vue e js
+
+
+44 - Buscando professores e disciplinas no autocomplete
+Nesta aula aprendemos a criar um novo componente e adicioná-lo ao admin para carregar.
+No componente existe 2 campos select2 para professor e disciplina
+Rever os codigos para mais informações
+
+
+45 - Criando model para ensino
+Nesta aula foi mostrado como criar a tabela pivot para relacionar professores/turma e disciplinas.
+Configurando os Models e as seeders relacionadas
+Rever os codigos para mais informações
+
+
+46 - Testando adição de ensino
+Nesta aula foi mostrado como configurar a exibição dos professores e turmas
+Vide novamente o video e o codigo pois foi muita informação, mas mto parecido com a lista de usuarios da disciplina
+
+
+47 - Testando exclusão de ensino
+A exclusão foi configurada seguindo a mesma forma da exclusao de alunos da turma
+Vide essa aula.
+
+
+48 - Integração com biblioteca JWT
+Para trabalhar com essa biblioteca o interessante é assistir o curso 'Laravel com autenticação JWT'.
+Para instala-la execute:
+$ composer require tymon/jwt-auth:dev-develop#23034342c5eeacdcc0949a80ae4f2eada653f0ca
+
+Depois configure o app.php para adicionar o provider:
+  \Tymon\JWTAuth\Providers\LaravelServiceProvider::class,
+
+Então publique o provider via artisan 
+$ php artisan vendor:publish --provider="Tymon\JWTAuth\Providers\LaravelServiceProvider"
+
+
+Depois criei um hash dento do .env
+$ php artisan jwt:secret
+
+
+49 - Gerando token JWT
