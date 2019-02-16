@@ -1057,3 +1057,67 @@ $ php artisan jwt:secret
 
 
 49 - Gerando token JWT
+Nesta aula foi mostrad como gerar configurar o JWT, sua rota de api até o teste de geração de token.
+Resumindo, foi necessário criar um controller em Api chamado AuthController que é uma copia do LoginController, com algumas modificações.
+Foi criada tbm a rota no api.php para acessar o metodo accessToken do controller recem criado.
+No auth.php em config trocamos a sistema token por jwt no guard
+Foi criado um usuario professor na seeder de usuario para teste.
+e implementado JWTSubject no model de User
+
+
+50 - Resposta de erro ao requisitar token
+Nesta aula foi ensinado a configurar o retorno de erro caso a autenticação falhe.
+
+
+51 - Testando revogação do token
+Nesta aula foi ensinado como criar a rota de logout e revogação do token
+
+
+52 - Guardiões de autenticação
+Nesta aula foi mostrado como proteger a rota de autenticação e logout da api. Vide api.php a rota.
+
+
+53 - Auto-refresh token
+Nesta aula foi ensinado como configurar a auto renovação do token de acesso.
+Mostrou como configurar o middleware auth.renew no kernel.php e usa-lo no api.php(rota)
+Também mostrou como definir o tempo de renovação e expiração
+
+
+54 - Iniciando aplicação front-end
+Nesta  aula foi iniciada a configuração da single page application(spa)
+Primeiro passo  criar a pasta spa dentro de assets (ficará irmã de admin) e copiar a js e scss para dentro.. e apagar as da raiz
+Segundo passo limpas os arquivos admin.js e admin.scss e mudar os nomes para spa.js e spa.scss
+Terceiro passo é duplicar o app.blade e renomear para spa.blade, limpar e trocar as chamadas dos css e js para spa criado no passo 2
+Quarto passo é criar a rota app
+Ex:
+  Route::get('/app', function () {
+    return view('layouts.spa');
+  });
+
+  
+55 - Configuração de rotas com vue-router
+Nesta aula foi mostrado como criar os arquivos que serão responsaveis pelo roteamento do vue
+E foi necessario a instalação do VueRouter via npm install
+$ npm install vue-router --save-dev
+
+
+56 - Criando menu de usuário
+Nesta aula foi mostrado como realizar as configurações e a criação do menu no front-end para usuários.
+O menu foi montando em HTML e implementado dentro de um componente para ser dinamico ter suas particularidades para cada tipo de usuario
+
+
+57 - Iniciando estrutura de autenticação
+Nesta aula foi iniciado a configuração da estrutura de autenticação que será feita através do VUE 
+Então foi criado store a resouces especificos para isso
+
+
+58 - Primeiro teste de autenticação no front-end
+Nesta aula configuramos as funções de autenticacao e logout, com suas rotas e fizemos o primeiro teste.
+
+
+59 - Armazenando token JWT no local storage
+Aula muito complexa mostrando como armazenar local storage com token para utilizar pos login para autenticação e revogação
+OBS: Fazer curso de VUE.js
+
+
+60 - Mostrando nome do usuário
