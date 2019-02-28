@@ -1121,3 +1121,174 @@ OBS: Fazer curso de VUE.js
 
 
 60 - Mostrando nome do usuário
+Nesta aula foi ensinado as configurações para carregar o nome do usuario autenticado e exibi-lo no menu.
+
+
+61 - Debug da aplicação e sourcemaps
+Nesta aula foi ensinado a como utilizar o debub do beowser para javascript/vue e como habilitar no webpack.mix
+Nas copilações do js e css, adicione o metodo sourceMaps.
+Ex:
+  mix.js('resources/assets/admin/js/admin.js', 'public/js')
+   .sass('resources/assets/admin/sass/admin.scss', 'public/css');
+    .sourceMaps();
+    
+Para a funcionalidade de brower sync, no qual as alterações são acrregadas automaticamente no browser assim facilitando o desenvolvimento.
+Temos que chamar o brower sync informado a url do projeto
+Ex:
+mix.browserSync('localhost:86'); //3000
+
+Então nossa aplicação agora roda na porta 3000.
+Porém temos que instalar dois pacotes vias npm para essa funcionalidade:
+
+$ npm install browser-sync browser-sync-webpack-plugin --save-dev
+
+
+62 - Logout do SPA
+Nesta aula foi mostrado como configurar as funções para logout, criar o menu através de componente e incorporar o componente no menu.
+
+
+63 - Incluindo token JWT na requisição HTTTP
+Nesta aula foi mostrado o que é interceptor para que alteramos uma requisição sem interferir em sua sequência, apena adicionando ou removendo dados.
+No nosso caso, adicionando o token na autorizacao bearer
+
+
+64 - Interceptor para novo token e resposta 401
+Dando continuidade a area anterior, criamos mais um interceptor para gerar novo token e tratar da resposta http 401
+
+
+65 - Proteção da área internado do SPA
+Foi realizada nesta aula a configuração das rotas internas para acesso somente se autenticado, isso foi adiconado via metodo beforeEach do router na router
+
+
+66 - Mixins para organização dos componentes
+Foi mostrado a funcionalidade de mixin e como utilizar assim reaproveitando codigo e deixando as funções em arquivos especificos
+
+
+67 - Listando turmas do professor
+Nesta aula aprendemos a criar e configurar o crontroller responsavel por consulta as turmas do professor logado.
+O primeiro passo é criar o controller
+$ php artisan make:controller Api\\Teacher\\ClassInformationsController --resource
+
+Após criado, configurar sua rota na api limitando os metodos index e show
+  Route:group(['prefix' => 'teacher', 'as' => 'teacher.', 'namespace' => 'Teacher\\'], function (){
+      Route::resource('class_informations','ClassInformationsController', ['only' => ['index','show']]);
+  });
+Obs: Essa rota deve estar dentro do grupo de auth:renew
+
+
+68 - Protegendo area do professor
+Nesta aula configuramos uma nova habilidade para proteger a rota dos professores.
+Depois configuramos a rota dos professores adicionando essa habilidade criada
+Ex da rota:
+  Route::group([
+      'prefix' => 'teacher',
+      'as' => 'teacher.',
+      'namespace' => 'Teacher\\',
+      'middleware' => ['can:teacher']
+  ], function (){
+      Route::resource('class_informations','ClassInformationsController', ['only' => ['index','show']]);
+  });
+  
+Ex da habilidade:
+  \Gate::define('teacher', function($user){
+      return $user->userable instanceof Teacher;
+  });
+
+
+69 - Criando resource e armazém para turmas de professor
+Nesta aula foi mostrado como criar um armazem para listagem dos professores e como configurar por modulos o carregamento, assim modularizando a aplicação
+
+
+70 - Listando turmas do professor no SPA
+Foi ensinado nesta aula a configuraçãos dos modulos do vue para carregar e exibir as turmas do professor logado
+
+
+71 - Formatando data com filtro Vue
+Nesta aula foi mostrado como criar um filtro para q seja utilizado em toda a aplicação.
+No caso foi uma formatação de data do banco para a aplicação
+
+
+72 - Query Scope nas turmas do professor
+Nesta aula foi ensinado o conceito de query scope para dinamizar e economizar codificação na execução de queries de busca da turma do professor logado
+
+
+73 - Front para administrar ensino
+Nesta aula reconfiguramos a listagem da turma do professor com base no model de ClassTeachings.
+Então tivemos que criar o controller e mexer em todo vue js duplicando tudo q é de classInformation para ClassTeachings e configurando os store e resouce.
+
+
+74 - Testando listagens de ensino
+Depois da aula passada realizamos mais alguns ajustes e criação da rota, mexida no tamplate e crianção de filtro para testar a exibição da nossa alteração.
+
+
+75 - Modelando estrutura de avaliações
+Nesta aula cmeçamos a estrutura a aplicação para criação e apresentação das provas.
+Primeiro passo foi criação dos modelos com as migrações
+$ php artisan make:model Models\\ClassTest -m
+$ php artisan make:model Models\\Question -m
+$ php artisan make:model Models\\QuestionChoice -m
+
+Depois, configurar os campos nas migrações e fillable e funções de relacionamentos nos models
+
+
+76 - Criando dados de testes para avaliação
+Nesta aula foi mostrado como criar a seeder e configura-la para criar as provas, as questoes da prova com a resposta correta e atribuir a prova a uma disciplina.
+$ php artisan make:seeder ClassTestsTableSeeder
+
+
+77 - Listando avaliações
+Nesta aula foi visto como configurar o controller de ações do teste para o CRUD, como configurar a rota para acesso e testar a listagem.
+Criação do controller:
+$ php artisan make:controller Api\\Teacher\\ClassTestsController --resource
+
+
+78 - Criando regras de validação para avaliações
+Nesta aula criamos uma formRequest para validar a requisição e autorizar ou nao.
+Então criamos a request:
+$ php artisan make:request ClassTestRequest
+E depois configuramos os metodos e a validação dos campos
+
+
+79 - Testando regras de validação para avaliações
+Nesta aula foi feito testes das validações criadas na aula passando utilizando o postman para trabalhar com requisições REST
+
+
+80 - Criando avaliações
+Nesta aula foi ensinado a configurar o metodo store para criar a avaliação(prova) no banco de dados atribuindo as questoes e a resposta(choice)
+
+
+81 - Editando avaliações
+Nesta aula foi ensinado a configurar o metodo update para alterar a avaliação(prova) no banco de dados alterando também as questoes e as respostas(choices)
+
+
+82 - Excluindo avaliações
+Nesta aula foi ensinado a configurar o metodo delete para apagar a avaliação(prova) no banco de dados apagando também as questoes e as respostas(choices)
+
+
+83 - Front-end - Estrutura inicial para listar avaliações
+Nesta aula foi mostrado o inicio da configuração do vue para listarmos as avaliações da turma selecionada
+
+
+84 - Front-end - Listando avaliações
+Nesta aula iniciamos a configuração para listagem das avaliações no front-end utilizando vuejs
+
+
+85 - Mostrando turma no cabeçalho de listagem de avaliações
+Dando continuidade da listagem, configuramos alguns metodos para exibir os dados da turma no cabeçalho
+
+
+86 - Iniciando primeiro passo para cadastrar avaliações
+Nesta aula configuramos o vuex para começar a entender a funcionalidade de cadastro utilizando somente javascript
+
+
+87 - Reflexão sobr Vuex e two way data binding
+Nesta aula foi explicado um conceito do Vuex para trabalhos com formularios
+
+
+88 - Preparando o estado de modelo de avaliação
+Foi mostrado nessa aula a funcionalidade de modelo do vuex e para isso tivemos que instalar a bibliote vue-deepset
+$ npm install vue-deepset --save-dev
+
+
+89 - Definindo estado de modelo de avaliação
+

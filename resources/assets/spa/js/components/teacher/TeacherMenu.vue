@@ -1,18 +1,17 @@
 <template src="../templates/menu.html"></template>
 
 <script type="text/javascript">
-    // import authMixin from '../../mixins/auth.mixin';
-    // import menuMixin from '../../mixins/menu.mixin';
-
+    import authMixin from '../../mixins/auth.mixin';
+    import menuMixin from '../../mixins/menu.mixin';
     export default {
-        // mixins: [menuMixin],
+        mixins: [menuMixin],
         data(){
             return {
                 menus: [
-                    {name: "Minhas turmas", routeName: 'teacher.class_teachings.list'}
+                    {name: "Minhas turmas", routeName: 'class_teachings.list'}
                 ],
-                brandRouteName: 'teacher.class_teachings.list'
+                brandRouteName: 'class_teachings.list'
             }
-        },
+        }
     };
 </script>
