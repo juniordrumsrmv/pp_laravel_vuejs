@@ -2,6 +2,7 @@
 
 namespace SON\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class ClassTest extends Model
@@ -49,7 +50,7 @@ class ClassTest extends Model
     public static function createFully(array $data){
         $classTest = self::create($data);
         foreach ($data['questions'] as $question) {
-            self::createQuestion($question+['clss_test_id' => $classTest->id]);
+            self::createQuestion($question+['class_test_id' => $classTest->id]);
         }
         return $classTest;
     }

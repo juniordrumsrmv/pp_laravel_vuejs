@@ -32,10 +32,10 @@
     import classInformationMixin from '../../../mixins/class_information.mixin';
 
     export default {
-        /*components: {
+        components: {
             'teacher-class-test-question-form': require('./TeacherClassTestQuestionForm.vue'),
             'teacher-class-test-question-list': require('./TeacherClassTestQuestionList.vue'),
-        },*/
+        },
         mixins: [classInformationMixin],
         computed: {
             classTest() {
@@ -46,7 +46,28 @@
             store.dispatch('teacher/classTeaching/get', this.$route.params.class_teaching);
         },
         methods: {
+            save(){
+                let classTeachindId = this.$route.params.class_teaching;
+                let afterSave = () => {
+                    this.$router.push({
+                        name: 'class_tests.list',
+                        params: {
+                            class_teaching: classTeachindId
+                        }
+                    });
+                };
+                if ( typeof this.classTest.id =="undefined") {
+                    store.dispatch('teacher/classTest/create', classTeachindId)
+                        .then(afterSave);
 
+                }else{
+                    store.dispatch('teacher/classTest/update', {
+                        classTeachindId,
+                        classTestId: this.classTest.id
+                    })
+                        .then(afterSave);
+                }
+            }
         }
     }
 </script>

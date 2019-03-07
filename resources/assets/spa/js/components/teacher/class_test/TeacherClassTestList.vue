@@ -25,18 +25,18 @@
                 <tbody>
                 <tr v-for="classTest in classTests">
                     <td>{{classTest.name}}</td>
-                    <!--<td>{{classTest.date_start}}</td>-->
-                    <!--<td>{{classTest.date_end}}</td>-->
-                    <!--<td>{{classTest.total_questions}}</td>-->
-                    <!--<td>{{classTest.total_points}}</td>-->
-                    <!--<td>-->
-                        <!--&lt;!&ndash;<router-link :to="routeClassTestEdit(classTest.id)">&ndash;&gt;-->
-                            <!--&lt;!&ndash;Editar&ndash;&gt;-->
-                        <!--&lt;!&ndash;</router-link> |&ndash;&gt;-->
-                        <!--&lt;!&ndash;<a href="#" @click.prevent="deleteClassTest(classTest)">&ndash;&gt;-->
-                            <!--&lt;!&ndash;Excluir&ndash;&gt;-->
-                        <!--&lt;!&ndash;</a>&ndash;&gt;-->
-                    <!--</td>-->
+                    <td>{{classTest.date_start}}</td>
+                    <td>{{classTest.date_end}}</td>
+                    <td>{{classTest.total_questions}}</td>
+                    <td>{{classTest.total_points}}</td>
+                    <td>
+                        <router-link :to="routeClassTestEdit(classTest.id)">
+                            Editar
+                        </router-link> |
+                        <!--<a href="#" @click.prevent="deleteClassTest(classTest)">-->
+                            <!--Excluir-->
+                        <!--</a>-->
+                    </td>
                 </tr>
                 </tbody>
             </table>
@@ -56,7 +56,7 @@
             },
             routeClassTestCreate(){
                 return {
-                    name: 'teacher.class_tests.create_data',
+                    name: 'class_tests.create_data',
                     params: {
                         'class_teaching': this.$route.params.class_teaching
                     }
@@ -69,16 +69,16 @@
             store.dispatch('teacher/classTest/query', classTeachingId);
         },
         methods: {
-            /*
             routeClassTestEdit(classTestId){
                 return {
-                    name: 'teacher.class_tests.update_data',
+                    name: 'class_tests.update_data',
                     params: {
                         class_teaching: this.$route.params.class_teaching,
                         class_test: classTestId
                     }
                 }
             },
+            /*
             deleteClassTest(classTest){
                 if(confirm('Deseja excluir esta avaliação')){
                     store.dispatch('teacher/classTest/delete',{

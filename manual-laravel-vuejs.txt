@@ -1286,9 +1286,34 @@ Nesta aula foi explicado um conceito do Vuex para trabalhos com formularios
 
 
 88 - Preparando o estado de modelo de avaliação
-Foi mostrado nessa aula a funcionalidade de modelo do vuex e para isso tivemos que instalar a bibliote vue-deepset
+Foi mostrado nessa aula a funcionalidade de modelo do vuex e para isso tivemos que instalar a biblioteca vue-deepset
 $ npm install vue-deepset --save-dev
 
 
-89 - Definindo estado de modelo de avaliação
+89 - Definindo etapas de cadastro de avaliação
+Nesta aula mapeamos e definimos a criação de avaliações por etapas
+
+
+90 - Definindo formulário de criação de questões
+Nesta aula iniciamos a criação do formulario de questão que será separados em componentes para modularizar e facilitar a manutenção e futuras implementações
+
+
+91 - Listando questões
+Nesta aula implementamos o modulo/componente de questões do forumário de criação de avaliação
+
+
+92 - Listando alternativas
+Nesta aula implementamos o modulo/componente de alternativas das questões no forumário de criação de avaliação
+
+
+93 - Melhorias no formulario de inclusão de questões
+Nesta aula fizemos algumas melhorias no formulario de criação de avaliações e terminamos o vuejs dela
+
+
+94 - Front-end: Cadastrando avaliação
+Nesta aula terminamos a configuração e realizamos a inclusão de fato no banco da nova avaliação
+
+
+95 - Atualizando avaliações
+
 
