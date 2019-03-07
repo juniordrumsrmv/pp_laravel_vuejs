@@ -47,22 +47,22 @@
         },
         methods: {
             save(){
-                let classTeachindId = this.$route.params.class_teaching;
+                let classTeachingId = this.$route.params.class_teaching;
                 let afterSave = () => {
                     this.$router.push({
                         name: 'class_tests.list',
                         params: {
-                            class_teaching: classTeachindId
+                            class_teaching: classTeachingId
                         }
                     });
                 };
                 if ( typeof this.classTest.id =="undefined") {
-                    store.dispatch('teacher/classTest/create', classTeachindId)
+                    store.dispatch('teacher/classTest/create', classTeachingId)
                         .then(afterSave);
 
                 }else{
                     store.dispatch('teacher/classTest/update', {
-                        classTeachindId,
+                        classTeachingId,
                         classTestId: this.classTest.id
                     })
                         .then(afterSave);
